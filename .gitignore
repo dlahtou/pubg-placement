@@ -2,3 +2,4 @@ data/t*.csv
 data/all.zip
 .vscode/*
 .ipynb_checkpoints/*
+*.pyc
