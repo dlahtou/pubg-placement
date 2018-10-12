@@ -6,6 +6,7 @@ import model
 from sklearn import metrics
 from os.path import isdir, join
 from os import mkdir
+import pickle as pkl
 
 def main():
     out_folder = 'output'
