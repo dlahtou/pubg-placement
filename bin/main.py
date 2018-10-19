@@ -24,7 +24,7 @@ def main():
 def extract():
     logging.info('Beginning Extract')
 
-    observations = pd.read_csv('data/train.csv', nrows=500000) # TODO: remove nrows when testing on all data
+    observations = pd.read_csv('input/train.csv', nrows=1000000) # TODO: remove nrows when testing on all data
 
     logging.info(f'Extract complete: {type(observations)} {observations.shape if isinstance(observations, pd.core.frame.DataFrame) else "NOT DATAFRAME"}')
  
