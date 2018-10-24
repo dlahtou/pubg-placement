@@ -13,7 +13,7 @@ from sklearn import metrics
 from os.path import isdir, join
 from os import listdir
 import pickle as pkl
-import lightgbm as lgb
+from catboost import CatBoostRegressor
 
 from sklearn.linear_model import Ridge
 from sklearn.preprocessing import StandardScaler
@@ -40,7 +40,7 @@ def main():
     
     logging.info(test_set.shape)
     
-    output_by_groupId = predict(test_set, results, 'LightGBM')
+    output_by_groupId = predict(test_set, results, 'Catboost')
     
     load(output_by_groupId)
 
@@ -51,7 +51,7 @@ def ridge_model(X, y):
 
     return model
 
-def lightgbm_model(X, y):
+'''def lightgbm_model(X, y):
     X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=42)
     
     train_dataset = lgb.Dataset(X_train, y_train, silent=False)
@@ -68,7 +68,28 @@ def lightgbm_model(X, y):
     
     model = lgb.train(param, train_set=train_dataset, num_boost_round=1000, early_stopping_rounds=20, verbose_eval=100, valid_sets=test_dataset)
     
+    return model'''
+
+def catboost_model(X, y):
+    X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=42)
+
+    eval_set = (X_test, y_test)
+
+    model = CatBoostRegressor(loss_function='RMSE',
+                            custom_metric='MAE',
+                            learning_rate=0.05,
+                            use_best_model=True)
+    
+    '''loss_function='RMSE',
+                            custom_metric='MAE',
+                            max_depth=10,
+                            use_best_model=True,
+                            learning_rate=0.05'''
+
+    model.fit(X_train, y_train, eval_set=eval_set)
+
     return model
+
     
 def team_minima(observations):
     team_observations = observations.groupby(observations['groupId']).min()
@@ -184,11 +205,11 @@ def train(observations):
     logging.info('Begin train')
 
     # edit this line to select different models for training
-    selected_models = ["Ridge", "LightGBM"]
+    selected_models = ["Ridge", "Catboost"]
 
     # looping vars
     model_functions = {"Ridge": ridge_model,
-                        "LightGBM": lightgbm_model}
+                        "Catboost": catboost_model}
     results = [] # will be a list of dictionaries of model results
 
     # format X, y; train-test split
@@ -261,7 +282,7 @@ def load(output_by_groupId):
     
     output = observations[['Id', 'winPlacePerc']]
     
-    output.to_csv('lgbm_submission.csv', index=False)
+    output.to_csv('catboost_submission.csv', index=False)
     
 
 if __name__ == '__main__':
