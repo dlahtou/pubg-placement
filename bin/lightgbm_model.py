@@ -21,9 +21,11 @@ from sklearn.preprocessing import StandardScaler
 scaler = StandardScaler()
 
 def main():
+    nrows=100000
+
     logging.basicConfig(level=logging.DEBUG)
 
-    observations = extract('train')
+    observations = extract('train', nrows=nrows)
 
     observations = transform(observations)
 
@@ -31,10 +33,7 @@ def main():
     
     del observations
     
-    test_set = pd.read_csv('../input/test_V2.csv', nrows=50000)
-    
-    logging.info(test_set.shape)
-    logging.info(test_set.head())
+    test_set = extract('test', nrows=nrows)
     
     test_set = transform(test_set)
     
@@ -42,7 +41,7 @@ def main():
     
     output_by_groupId = predict(test_set, results, 'LightGBM')
     
-    load(output_by_groupId)
+    load(output_by_groupId, nrows)
 
 def ridge_model(X, y):
     model = Ridge()
@@ -66,7 +65,7 @@ def lightgbm_model(X, y):
             'min_data_in_leaf': 200,
             'max_bin': 200}
     
-    model = lgb.train(param, train_set=train_dataset, num_boost_round=1000, early_stopping_rounds=20, verbose_eval=100, valid_sets=test_dataset)
+    model = lgb.train(param, train_set=train_dataset, num_boost_round=3000, early_stopping_rounds=100, verbose_eval=50, valid_sets=test_dataset)
     
     return model
     
@@ -104,10 +103,10 @@ def team_ranks(team_observations):
     return rank_observations
 
 
-def extract(csv_name):
+def extract(csv_name, nrows=None):
     logging.info('Beginning Extract')
 
-    observations = pd.read_csv(f'../input/{csv_name}_V2.csv', nrows=50000)
+    observations = pd.read_csv(f'../input/{csv_name}_V2.csv', nrows=nrows)
 
     logging.info(f'Extract complete: {type(observations)} {observations.shape if isinstance(observations, pd.core.frame.DataFrame) else "NOT DATAFRAME"}')
  
@@ -169,14 +168,12 @@ def transform(observations):
     logging.info('Adding teamSize column')
     team_observations['teamSize'] = observations.groupby(['groupId'])['assists'].count()
 
+    logging.info(f"Team Sizes: {team_observations['teamSize'].unique()}")
+
     team_observations.drop('matchId', axis=1, inplace=True)
 
     logging.info(f'Transform complete')
     logging.info(f'Observations shape {team_observations.shape}')
-
-    logging.info(team_observations['teamSize'].unique())
-    
-    logging.info(team_observations[team_observations.isnull().any(axis=1)])
 
     return team_observations
 
@@ -254,7 +251,7 @@ def predict(observations, results, model_name):
         
     return output_by_groupId
     
-def load(output_by_groupId):
+def load(output_by_groupId, nrows=None):
     observations = extract('test')
     
     observations = observations.merge(output_by_groupId, how="left", on="groupId")
